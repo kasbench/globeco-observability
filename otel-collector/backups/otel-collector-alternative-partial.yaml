@@ -1,0 +1,102 @@
+processors:
+      batch:
+        timeout: 1s
+        send_batch_size: 1024
+        send_batch_max_size: 2048
+      
+      memory_limiter:
+        limit_mib: 512
+        spike_limit_mib: 128
+        check_interval: 5s
+      
+      # Transform processor to modify metric names and add labels
+      transform:
+        error_mode: ignore
+        metric_statements:
+          - context: metric
+            statements:
+              # Remove otel_ prefix if present
+              - set(name, replace_pattern(name, "^otel_", ""))
+              # Add service name as a label if not present
+              - set(attributes["service_name"], resource.attributes["service.name"]) where attributes["service_name"] == nil
+              # Add pod name as a label
+              - set(attributes["pod_name"], resource.attributes["k8s.pod.name"]) where attributes["pod_name"] == nil
+              # Add namespace as a label
+              - set(attributes["namespace"], resource.attributes["k8s.namespace.name"]) where attributes["namespace"] == nil
+      
+      # K8s attributes processor
+      k8sattributes:
+        auth_type: "serviceAccount"
+        passthrough: false
+        filter:
+          node_from_env_var: MY_NODE_NAME
+        extract:
+          metadata:
+            - k8s.pod.name
+            - k8s.pod.uid
+            - k8s.deployment.name
+            - k8s.namespace.name
+            - k8s.node.name
+            - k8s.pod.start_time
+          labels:
+            - tag_name: k8s.pod.label.app
+              key: app
+              from: pod
+            - tag_name: k8s.pod.label.version
+              key: version
+              from: pod
+        pod_association:
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.ip
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.name
+              - from: resource_attribute
+                name: k8s.namespace.name
+          - sources:
+              - from: connection
+      
+      # Resource processor - modified to preserve original service.name
+      resource:
+        attributes:
+          - key: k8s.pod.ip
+            value: "${env:MY_POD_IP}"
+            action: upsert
+          - key: k8s.node.name
+            value: "${env:MY_NODE_NAME}"
+            action: upsert
+          - key: k8s.namespace.name
+            value: "${env:MY_NAMESPACE}"
+            action: upsert
+          # Only add collector service name if no service.name exists
+          - key: service.name
+            value: "otel-collector"
+            action: insert
+    
+    exporters:
+      # Prometheus exporter with no namespace prefix
+      prometheus:
+        endpoint: "0.0.0.0:8889"
+        namespace: ""  # This removes the otel_ prefix
+        const_labels:
+          environment: "production"
+        metric_expiration: 180m
+        resource_to_telemetry_conversion:
+          enabled: true
+        enable_open_metrics: true
+        # Send all resource attributes as labels
+        send_timestamps: true
+        metric_relabeling:
+          - source_labels: [__name__]
+            regex: "^otel_(.+)"
+            target_label: __name__
+            replacement: "${1}"
+    
+    service:
+      extensions: [health_check, pprof, zpages]
+      pipelines:
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, k8sattributes, resource, transform, batch]
+          exporters: [prometheus, logging]
