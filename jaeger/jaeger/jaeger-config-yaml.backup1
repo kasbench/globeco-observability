@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jaeger-config
+  namespace: observability
+data:
+  config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+    storage:
+      type: elasticsearch
+      elasticsearch:
+        servers:
+          - http://elasticsearch:9200
+        # username: ""
+        # password: ""
+    query:
+      server:
+        http:
+          host-port: ":16686"
+    collector:
+      otlp:
+        grpc:
+          enabled: true
+          host-port: ":14250"
+      http:
+        enabled: true
+        host-port: ":14268" 

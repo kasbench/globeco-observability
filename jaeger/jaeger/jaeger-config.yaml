@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jaeger-config
+  namespace: observability
+data:
+  config.yaml: |
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+    
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+    
+    processors:
+      batch:
+        timeout: 5s
+        send_batch_size: 1024
+    
+    exporters:
+      elasticsearch:
+        endpoints:
+          - http://elasticsearch:9200
+        index: jaeger-span-2024
+        # username: ""
+        # password: ""
+        mapping:
+          mode: raw
+        tls:
+          insecure: true
+    
+    service:
+      extensions:
+        - health_check
+      pipelines:
+        traces:
+          receivers:
+            - otlp
+          processors:
+            - batch
+          exporters:
+            - elasticsearch
+    
+    # Jaeger Query Service Configuration
+    query:
+      base-path: /
+      grpc:
+        host-port: 0.0.0.0:16685
+      http:
+        host-port: 0.0.0.0:16686
+    
+    storage:
+      type: elasticsearch
+      elasticsearch:
+        servers:
+          - http://elasticsearch:9200
+        # username: ""
+        # password: ""
+        index_prefix: jaeger
+        create_index_templates: true
