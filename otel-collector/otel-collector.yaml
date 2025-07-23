@@ -223,8 +223,11 @@ spec:
            enabled: true
       redis/order_generation:
         endpoint: "globeco-order-generation-service-redis.globeco.svc.cluster.local:6379"
-#        username: "test"
-#        password: "test"
+        collection_interval: 10s
+        tls:
+          insecure: true
+      redis/portfolio_accounting:
+        endpoint: "globeco-portfolio-accounting-service-redis.globeco.svc.cluster.local:6379"
         collection_interval: 10s
         tls:
           insecure: true
@@ -478,6 +481,15 @@ spec:
             value: globeco-order-generation-service
             action: upsert
       
+      resource/redis_portfolio_accounting:
+        attributes:
+          - key: instance_name
+            value: globeco-portfolio-accounting-service-redis
+            action: upsert
+          - key: service_name
+            value: globeco-portfolio-accounting-service
+            action: upsert
+      
       resource/kafkametrics_execution:
         attributes:
           - key: instance_name
@@ -662,6 +674,11 @@ spec:
         metrics/redis_order_generation:
           receivers: [redis/order_generation]
           processors: [memory_limiter, resource/redis_order_generation, batch]
+          exporters: [prometheus, debug]
+        
+        metrics/redis_portfolio_accounting:
+          receivers: [redis/portfolio_accounting]
+          processors: [memory_limiter, resource/redis_portfolio_accounting, batch]
           exporters: [prometheus, debug]
         
         metrics/kafkametrics_execution_service:
