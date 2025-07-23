@@ -228,6 +228,16 @@ spec:
         collection_interval: 10s
         tls:
           insecure: true
+      kafkametrics/execution_service:
+        cluster_alias: kafka-execution-service
+        brokers: ["globeco-execution-service-kafka.globeco.svc.cluster.local:9092"]
+        protocol_version: 3.0.0
+        scrapers:
+          - brokers
+          - topics
+          - consumers
+        collection_interval: 30s
+          
 
     processors:
       batch:
@@ -468,6 +478,15 @@ spec:
             value: globeco-order-generation-service
             action: upsert
       
+      resource/kafkametrics_execution:
+        attributes:
+          - key: instance_name
+            value: globeco-execution-service-kafka
+            action: upsert
+          - key: service_name
+            value: globeco-execution-service
+            action: upsert
+      
       # Add k8sattributes processor to get pod information
       k8sattributes:
         auth_type: "serviceAccount"
@@ -643,6 +662,11 @@ spec:
         metrics/redis_order_generation:
           receivers: [redis/order_generation]
           processors: [memory_limiter, resource/redis_order_generation, batch]
+          exporters: [prometheus, debug]
+        
+        metrics/kafkametrics_execution_service:
+          receivers: [kafkametrics/execution_service]
+          processors: [memory_limiter, resource/kafkametrics_execution, batch]
           exporters: [prometheus, debug]
         
         traces:
