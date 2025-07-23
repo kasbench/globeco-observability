@@ -167,8 +167,6 @@ spec:
       mongodb/order_generation:
        hosts:
         - endpoint: globeco-order-generation-service-mongodb.globeco.svc.cluster.local:27017
-#       username: otel
-#       password: none
        collection_interval: 30s
        initial_delay: 1s
        tls:
@@ -185,7 +183,52 @@ spec:
            enabled: true
          mongodb.queries.rate:
            enabled: true
-         
+      mongodb/portfolio:
+       hosts:
+        - endpoint: globeco-portfolio-service-mongodb.globeco.svc.cluster.local:27017
+       collection_interval: 30s
+       initial_delay: 1s
+       tls:
+         insecure: true
+         insecure_skip_verify: true
+       metrics:
+         mongodb.uptime:
+           enabled: true
+         mongodb.commands.rate:
+           enabled: true
+         mongodb.health:
+           enabled: true
+         mongodb.operation.latency.time:
+           enabled: true
+         mongodb.queries.rate:
+           enabled: true
+      mongodb/security:
+       hosts:
+        - endpoint: globeco-security-service-mongodb.globeco.svc.cluster.local:27017
+       collection_interval: 30s
+       initial_delay: 1s
+       tls:
+         insecure: true
+         insecure_skip_verify: true
+       metrics:
+         mongodb.uptime:
+           enabled: true
+         mongodb.commands.rate:
+           enabled: true
+         mongodb.health:
+           enabled: true
+         mongodb.operation.latency.time:
+           enabled: true
+         mongodb.queries.rate:
+           enabled: true
+      redis/order_generation:
+        endpoint: "globeco-order-generation-service-redis.globeco.svc.cluster.local:6379"
+#        username: "test"
+#        password: "test"
+        collection_interval: 10s
+        tls:
+          insecure: true
+
     processors:
       batch:
         timeout: 1s
@@ -398,6 +441,33 @@ spec:
             value: globeco-order-generation-service
             action: upsert
       
+      resource/mongodb_portfolio:
+        attributes:
+          - key: instance_name
+            value: globeco-portfolio-service-mongodb
+            action: upsert
+          - key: service_name
+            value: globeco-portfolio-service
+            action: upsert
+      
+      resource/mongodb_security:
+        attributes:
+          - key: instance_name
+            value: globeco-security-service-mongodb
+            action: upsert
+          - key: service_name
+            value: globeco-security-service
+            action: upsert
+      
+      resource/redis_order_generation:
+        attributes:
+          - key: instance_name
+            value: globeco-order-generation-service-redis
+            action: upsert
+          - key: service_name
+            value: globeco-order-generation-service
+            action: upsert
+      
       # Add k8sattributes processor to get pod information
       k8sattributes:
         auth_type: "serviceAccount"
@@ -558,6 +628,21 @@ spec:
         metrics/mongodb_order_generation:
           receivers: [mongodb/order_generation]
           processors: [memory_limiter, resource/mongodb_order_generation, batch]
+          exporters: [prometheus, debug]
+        
+        metrics/mongodb_portfolio:
+          receivers: [mongodb/portfolio]
+          processors: [memory_limiter, resource/mongodb_portfolio, batch]
+          exporters: [prometheus, debug]
+        
+        metrics/mongodb_security:
+          receivers: [mongodb/security]
+          processors: [memory_limiter, resource/mongodb_security, batch]
+          exporters: [prometheus, debug]
+        
+        metrics/redis_order_generation:
+          receivers: [redis/order_generation]
+          processors: [memory_limiter, resource/redis_order_generation, batch]
           exporters: [prometheus, debug]
         
         traces:
