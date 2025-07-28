@@ -1,0 +1,146 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb-exporter-order-generation-service
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb-exporter-order-generation-service
+  template:
+    metadata:
+      labels:
+        app: mongodb-exporter-order-generation-service
+    spec:
+      containers:
+      - name: mongodb-exporter
+        image: percona/mongodb_exporter:0.44.0
+        args:
+          - --mongodb.uri=mongodb://globeco-order-generation-service-mongodb.globeco.svc.cluster.local:27017
+          - --discovering-mode
+        ports:
+        - containerPort: 9216
+          name: metrics
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb-exporter-portfolio-service
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb-exporter-portfolio-service
+  template:
+    metadata:
+      labels:
+        app: mongodb-exporter-portfolio-service
+    spec:
+      containers:
+      - name: mongodb-exporter
+        image: percona/mongodb_exporter:0.44.0
+        args:
+          - --mongodb.uri=mongodb://globeco-portfolio-service-mongodb.globeco.svc.cluster.local:27017
+          - --discovering-mode
+        ports:
+        - containerPort: 9216
+          name: metrics
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb-exporter-security-service
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb-exporter-security-service
+  template:
+    metadata:
+      labels:
+        app: mongodb-exporter-security-service
+    spec:
+      containers:
+      - name: mongodb-exporter
+        image: percona/mongodb_exporter:0.44.0
+        args:
+          - --mongodb.uri=mongodb://globeco-security-service-mongodb.globeco.svc.cluster.local:27017
+          - --discovering-mode
+        ports:
+        - containerPort: 9216
+          name: metrics
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-exporter-order-generation-service
+  namespace: monitoring
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9216"
+    prometheus.io/path: "/metrics"
+spec:
+  selector:
+    app: mongodb-exporter-order-generation-service
+  ports:
+  - protocol: TCP
+    port: 9216
+    targetPort: metrics
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-exporter-portfolio-service
+  namespace: monitoring
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9216"
+    prometheus.io/path: "/metrics"
+spec:
+  selector:
+    app: mongodb-exporter-portfolio-service
+  ports:
+  - protocol: TCP
+    port: 9216
+    targetPort: metrics
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-exporter-security-service
+  namespace: monitoring
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9216"
+    prometheus.io/path: "/metrics"
+spec:
+  selector:
+    app: mongodb-exporter-security-service
+  ports:
+  - protocol: TCP
+    port: 9216
+    targetPort: metrics
