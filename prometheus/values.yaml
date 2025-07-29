@@ -820,9 +820,23 @@ serverFiles:
 
   ## Records configuration
   ## Ref: https://prometheus.io/docs/prometheus/latest/configuration/recording_rules/
-  recording_rules.yml: {}
+  recording_rules.yml: 
   ## DEPRECATED DEFAULT VALUE, unless explicitly naming your files, please use recording_rules.yml
-  rules: {}
+  ## NDK: Commented aout the following line and added groups
+  ## rules: {}
+    groups:
+      - name: pod_metrics
+        interval: 30s
+        rules:
+          - record: kube_pod_info_with_name
+            expr: |
+              label_replace(
+                kube_pod_info,
+                "pod_name",
+                "$1",
+                "pod",
+                "^(.*)-[a-z0-9]{10}-[a-z0-9]{5}$"
+              )
 
   prometheus.yml:
     rule_files:
