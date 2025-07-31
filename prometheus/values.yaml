@@ -855,6 +855,10 @@ serverFiles:
           - targets:
               - otel-collector-collector.monitoring.svc.cluster.local:8889
               # - otel-collector-cluster-opentelemetry-collector.monitor.svc.cluster.local:8889
+      - job_name: locust-collector
+        static_configs:
+          - targets:
+              - globeco-benchmark-coordinator-internal.globeco.svc.cluster.local:9646
 
 
       # A scrape configuration for running Prometheus on a Kubernetes cluster.
