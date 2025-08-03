@@ -63,6 +63,12 @@ spec:
         endpoint: globeco-trade-service-postgresql.globeco.svc.cluster.local:5432
         username: postgres
         password: none
+        databases:
+          - postgres
+        collection_interval: 10s
+        tls:
+          insecure: true
+          insecure_skip_verify: true
       postgresql/trade_all:
         endpoint: globeco-trade-service-postgresql.globeco.svc.cluster.local:5432
         transport: tcp
@@ -78,6 +84,12 @@ spec:
         endpoint: globeco-allocation-service-postgresql.globeco.svc.cluster.local:5432
         username: postgres
         password: none
+        databases:
+          - postgres
+        collection_interval: 10s
+        tls:
+          insecure: true
+          insecure_skip_verify: true
       postgresql/allocation_all:
         endpoint: globeco-allocation-service-postgresql.globeco.svc.cluster.local:5432
         transport: tcp
@@ -93,6 +105,12 @@ spec:
         endpoint: globeco-order-service-postgresql.globeco.svc.cluster.local:5432
         username: postgres
         password: none
+        databases:
+          - postgres
+        collection_interval: 10s
+        tls:
+          insecure: true
+          insecure_skip_verify: true
       postgresql/order_all:
         endpoint: globeco-order-service-postgresql.globeco.svc.cluster.local:5432
         transport: tcp
@@ -108,6 +126,12 @@ spec:
         endpoint: globeco-pricing-service-postgresql.globeco.svc.cluster.local:5432
         username: postgres
         password: none
+        databases:
+          - postgres
+        collection_interval: 10s
+        tls:
+          insecure: true
+          insecure_skip_verify: true
       postgresql/pricing_all:
         endpoint: globeco-pricing-service-postgresql.globeco.svc.cluster.local:5432
         transport: tcp
@@ -123,6 +147,12 @@ spec:
         endpoint: globeco-execution-service-postgresql.globeco.svc.cluster.local:5432
         username: postgres
         password: none
+        databases:
+          - postgres
+        collection_interval: 10s
+        tls:
+          insecure: true
+          insecure_skip_verify: true
       postgresql/execution_all:
         endpoint: globeco-execution-service-postgresql.globeco.svc.cluster.local:5432
         transport: tcp
@@ -138,6 +168,12 @@ spec:
         endpoint: globeco-fix-engine-postgresql.globeco.svc.cluster.local:5432
         username: postgres
         password: none
+        databases:
+          - postgres
+        collection_interval: 10s
+        tls:
+          insecure: true
+          insecure_skip_verify: true
       postgresql/fix_all:
         endpoint: globeco-fix-engine-postgresql.globeco.svc.cluster.local:5432
         transport: tcp
@@ -153,6 +189,12 @@ spec:
         endpoint: globeco-portfolio-accounting-service-postgresql.globeco.svc.cluster.local:5432
         username: postgres
         password: none
+        databases:
+          - postgres
+        collection_interval: 10s
+        tls:
+          insecure: true
+          insecure_skip_verify: true
       postgresql/portfolio_accounting_all:
         endpoint: globeco-portfolio-accounting-service-postgresql.globeco.svc.cluster.local:5432
         transport: tcp
@@ -561,8 +603,8 @@ spec:
       debug: {}
     
     extensions:
-      health_check:
-        endpoint: 0.0.0.0:13133
+      # health_check:
+      #   endpoint: 0.0.0.0:13133
       
       pprof:
         endpoint: 0.0.0.0:1777
@@ -700,10 +742,10 @@ spec:
   resources:
     limits:
       cpu: 500m
-      memory: 512Mi
+      memory: 1024Mi
     requests:
-      cpu: 100m
-      memory: 128Mi
+      cpu: 500m
+      memory: 512Mi
   
   # Replica configuration
   replicas: 1
