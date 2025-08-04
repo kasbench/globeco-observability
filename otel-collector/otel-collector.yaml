@@ -589,7 +589,7 @@ spec:
         # Enable target_info metric to preserve resource attributes
         enable_open_metrics: true
         # Add resource attributes as labels
-        add_metric_suffixes: true
+        add_metric_suffixes: false
   
       otlp:
         endpoint: "jaeger.observability.svc.cluster.local:4317"
@@ -745,7 +745,7 @@ spec:
       memory: 1024Mi
     requests:
       cpu: 500m
-      memory: 512Mi
+      memory: 1024Mi
   
   # Replica configuration
   replicas: 1
