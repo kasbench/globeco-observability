@@ -294,6 +294,7 @@ spec:
         limit_mib: 512
         spike_limit_mib: 128
         check_interval: 5s
+
       
       # Enhanced resource processor to preserve original service.name and add pod info
       resource:
@@ -589,7 +590,7 @@ spec:
         # Enable target_info metric to preserve resource attributes
         enable_open_metrics: true
         # Add resource attributes as labels
-        add_metric_suffixes: false
+        add_metric_suffixes: true
   
       otlp:
         endpoint: "jaeger.observability.svc.cluster.local:4317"
