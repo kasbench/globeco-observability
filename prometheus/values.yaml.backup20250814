@@ -850,15 +850,15 @@ serverFiles:
         static_configs:
           - targets:
               - localhost:9090
-      #- job_name: otel-collector-cluster
-      #  static_configs:
-      #    - targets:
-      #        - otel-collector-collector.monitoring.svc.cluster.local:8889
-      #        # - otel-collector-cluster-opentelemetry-collector.monitor.svc.cluster.local:8889
-      #  scrape_interval: 30s
-      #  scrape_timeout: 25s
-      #  metrics_path: /metrics
-      #  scheme: http
+      - job_name: otel-collector-cluster
+        static_configs:
+          - targets:
+              - otel-collector-collector.monitoring.svc.cluster.local:8889
+              # - otel-collector-cluster-opentelemetry-collector.monitor.svc.cluster.local:8889
+        scrape_interval: 30s
+        scrape_timeout: 25s
+        metrics_path: /metrics
+        scheme: http
       - job_name: locust-collector
         static_configs:
           - targets:
