@@ -659,7 +659,7 @@ spec:
         const_labels:
           environment: "production"
           collector: "otel-collector"
-        metric_expiration: 180m
+        metric_expiration: 5m
         resource_to_telemetry_conversion:
           enabled: true
         # Enable target_info metric to preserve resource attributes
