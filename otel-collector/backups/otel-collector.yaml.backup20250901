@@ -286,6 +286,28 @@ spec:
           - topics
           - consumers
         collection_interval: 30s
+      # prometheus:
+      #   config:
+      #     scrape_configs:
+      #       - job_name: 'globeco-services'
+      #         kubernetes_sd_configs:
+      #           - role: pod
+      #             namespaces:
+      #               names:
+      #                 - globeco
+      #         relabel_configs:
+      #           - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+      #             action: keep
+      #             regex: true
+      #           - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+      #             action: replace
+      #             target_label: __metrics_path__
+      #             regex: (.+)
+      #           - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+      #             action: replace
+      #             regex: ([^:]+)(?::\d+)?;(\d+)
+      #             replacement: $1:$2
+      #             target_label: __address__
     
 
     processors:
@@ -299,7 +321,6 @@ spec:
         spike_limit_mib: 128
         check_interval: 5s
 
-      # FIXED: Single k8sattributes processor definition with better pod association
       k8sattributes:
         auth_type: "serviceAccount"
         passthrough: false
@@ -325,20 +346,6 @@ spec:
             - tag_name: k8s_pod_annotation_prometheus_scrape
               key: prometheus.io/scrape
               from: pod
-        # IMPROVED: Better pod association strategy
-        pod_association:
-          # Try connection-based association first (works for most cases)
-          - sources:
-              - from: connection
-          # Fallback to resource attribute-based association
-          - sources:
-              - from: resource_attribute
-                name: k8s.pod.ip
-          - sources:
-              - from: resource_attribute
-                name: k8s.pod.name
-              - from: resource_attribute
-                name: k8s.namespace.name
       
       # Enhanced resource processor to preserve original service.name and add pod info
       resource:
@@ -371,6 +378,21 @@ spec:
           - key: k8s_pod_ip
             from_attribute: k8s.pod.ip
             action: upsert
+          # Clean up the original attributes to avoid duplication
+          - key: k8s.pod.name
+            action: delete
+          - key: k8s.pod.uid
+            action: delete
+          - key: k8s.pod.start_time
+            action: delete
+          - key: k8s.deployment.name
+            action: delete
+          - key: k8s.namespace.name
+            action: delete
+          - key: k8s.node.name
+            action: delete
+          - key: k8s.pod.ip
+            action: delete
       
       # Separate resource processors for each PostgreSQL instance
       resource/postgres_trade:
@@ -594,6 +616,39 @@ spec:
           - key: service_name
             value: globeco-execution-service
             action: upsert
+      
+      # Add k8sattributes processor to get pod information
+      k8sattributes:
+        auth_type: "serviceAccount"
+        passthrough: false
+        filter:
+          node_from_env_var: MY_NODE_NAME
+        extract:
+          metadata:
+            - k8s.pod.name
+            - k8s.pod.uid
+            - k8s.deployment.name
+            - k8s.namespace.name
+            - k8s.node.name
+            - k8s.pod.start_time
+          labels:
+            - tag_name: k8s.pod.label.app
+              key: app
+              from: pod
+            - tag_name: k8s.pod.label.version
+              key: version
+              from: pod
+        pod_association:
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.ip
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.name
+              - from: resource_attribute
+                name: k8s.namespace.name
+          - sources:
+              - from: connection
     
     exporters:
       # Enhanced Prometheus exporter configuration
@@ -624,8 +679,8 @@ spec:
       debug: {}
     
     extensions:
-      health_check:
-        endpoint: 0.0.0.0:13133
+      # health_check:
+      #   endpoint: 0.0.0.0:13133
       
       pprof:
         endpoint: 0.0.0.0:1777
@@ -636,16 +691,14 @@ spec:
     service:
       extensions: [health_check, pprof, zpages]
       pipelines:
-        # FIXED: Single pipeline for OTLP metrics from microservices
-        metrics/otlp:
+        metrics/prometheus:
           receivers: [otlp]
+          processors: [k8sattributes, resource, batch]
+          exporters: [prometheus]
+        # Main metrics pipeline for OTLP and hostmetrics
+        metrics/main:
+          receivers: [otlp, hostmetrics]
           processors: [memory_limiter, k8sattributes, resource, batch]
-          exporters: [prometheus, debug]
-        
-        # Host metrics pipeline (separate from OTLP)
-        metrics/hostmetrics:
-          receivers: [hostmetrics]
-          processors: [memory_limiter, batch]
           exporters: [prometheus, debug]
         
         # Separate pipelines for Trade Service PostgreSQL instances
@@ -793,7 +846,7 @@ spec:
       valueFrom:
         fieldRef:
           fieldPath: metadata.name
-    - name: KUBE_NODE_NAME
+    - name: MY_NODE_NAME
       valueFrom:
         fieldRef:
           fieldPath: spec.nodeName
