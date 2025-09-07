@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: globeco-postgres-exporter-trade-service
+  namespace: globeco
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: globeco-postgres-exporter-trade-service
+  template:
+    metadata:
+      labels:
+        app: globeco-postgres-exporter-trade-service
+    spec:
+      containers:
+      - name: postgres-exporter
+        image: quay.io/prometheuscommunity/postgres-exporter:v0.17.1
+        env:
+        - name: DATA_SOURCE_NAME
+          value: postgresql://postgres:postgres@globeco-trade-service-postgresql:5432/postgres?sslmode=disable
+        ports:
+        - name: metrics
+          containerPort: 9187
+    

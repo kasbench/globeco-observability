@@ -286,6 +286,13 @@ spec:
           - topics
           - consumers
         collection_interval: 30s
+      prometheus:
+        config:
+          scrape_configs:
+            - job_name: 'postgres'
+              static_configs:
+                - targets: ['globeco-postgres-exporter-trade-service.globeco.svc.cluster.local:9187']
+
       # prometheus:
       #   config:
       #     scrape_configs:
@@ -807,6 +814,10 @@ spec:
           receivers: [kafkametrics/execution_service]
           processors: [memory_limiter, resource/kafkametrics_execution, batch]
           exporters: [prometheus, debug]
+        
+        metrics/prometheus_postgres_exporter:
+          receivers: [prometheus]
+          exporters: [prometheus]
         
         traces:
           receivers: [otlp]

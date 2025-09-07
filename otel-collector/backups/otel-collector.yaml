@@ -44,6 +44,13 @@ spec:
               allowed_origins:
                 - "http://*"
                 - "https://*"
+      prometheus:
+        config:
+          scrape_configs:
+            - job_name: 'postgres'
+              static_configs:
+                - targets: ['globeco-postgres-exporter-trade-service:9187']
+      
     
     processors:
       batch:

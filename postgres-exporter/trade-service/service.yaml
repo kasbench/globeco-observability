@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: globeco-postgres-exporter-trade-service
+  namespace: globeco
+spec:
+  selector:
+    app: globeco-postgres-exporter-trade-service
+  ports:
+  - name: metrics
+    port: 9187
+    targetPort: metrics
