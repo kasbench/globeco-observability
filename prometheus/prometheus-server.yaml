@@ -1,12 +1,35 @@
 apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: prometheus-server-pv
+  labels:
+    app.kubernetes.io/component: server
+    app.kubernetes.io/instance: prometheus
+    app.kubernetes.io/name: prometheus
+spec:
+  capacity:
+    storage: 32Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-storage
+  local:
+    path: /mnt/disk1/prometheus-server
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - node-4
+---
+apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   annotations:
     meta.helm.sh/release-name: prometheus
     meta.helm.sh/release-namespace: monitor
-  creationTimestamp: "2025-07-06T15:46:31Z"
-  finalizers:
-  - kubernetes.io/pvc-protection
   labels:
     app.kubernetes.io/component: server
     app.kubernetes.io/instance: prometheus
@@ -17,7 +40,6 @@ metadata:
     helm.sh/chart: prometheus-27.23.0
   name: prometheus-server
   namespace: monitor
-  uid: 440db1e3-bf45-48bb-b457-021258ac8fb0
 spec:
   accessModes:
   - ReadWriteOnce
@@ -26,3 +48,4 @@ spec:
       storage: 32Gi
   storageClassName: local-storage
   volumeMode: Filesystem
+  volumeName: prometheus-server-pv
