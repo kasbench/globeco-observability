@@ -1,0 +1,908 @@
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel-collector
+  namespace: monitoring
+spec:
+  mode: deployment
+  image: otel/opentelemetry-collector-contrib:latest
+  serviceAccount: otel-collector
+  env:
+  - name: KUBE_NODE_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: spec.nodeName
+  # Ports configuration
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+      protocol: TCP
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+      protocol: TCP
+    - name: prometheus
+      port: 8889
+      targetPort: 8889
+      protocol: TCP
+    - name: pprof
+      port: 1777
+      targetPort: 1777
+      protocol: TCP
+    - name: zpages
+      port: 55679
+      targetPort: 55679
+      protocol: TCP
+  
+  # OpenTelemetry Collector configuration
+  config:
+    receivers:
+      hostmetrics:
+        collection_interval: 30s
+        scrapers:
+          cpu: {}
+          disk: {}
+          load: {}
+          filesystem: {}
+          memory: {}
+          network: {}
+          paging: {}
+          process:
+            mute_process_name_error: true
+            mute_process_exe_error: true
+            mute_process_io_error: true
+          processes: {}
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+            cors:
+              allowed_origins:
+                - "http://*"
+                - "https://*"
+      postgresql/trade:
+        endpoint: globeco-trade-service-postgresql.globeco.svc.cluster.local:5432
+        username: postgres
+        password: none
+        databases:
+          - postgres
+        collection_interval: 10s
+        tls:
+          insecure: true
+          insecure_skip_verify: true
+      postgresql/trade_all:
+        endpoint: globeco-trade-service-postgresql.globeco.svc.cluster.local:5432
+        transport: tcp
+        username: postgres
+        password: none
+        databases:
+          - postgres
+        collection_interval: 10s
+        tls:
+          insecure: true
+          insecure_skip_verify: true
+      postgresql/allocation:
+        endpoint: globeco-allocation-service-postgresql.globeco.svc.cluster.local:5432
+        username: postgres
+        password: none
+        databases:
+          - postgres
+        collection_interval: 10s
+        tls:
+          insecure: true
+          insecure_skip_verify: true
+      postgresql/allocation_all:
+        endpoint: globeco-allocation-service-postgresql.globeco.svc.cluster.local:5432
+        transport: tcp
+        username: postgres
+        password: none
+        databases:
+          - postgres
+        collection_interval: 10s
+        tls:
+          insecure: true
+          insecure_skip_verify: true
+      postgresql/order:
+        endpoint: globeco-order-service-postgresql.globeco.svc.cluster.local:5432
+        username: postgres
+        password: none
+        databases:
+          - postgres
+        collection_interval: 10s
+        tls:
+          insecure: true
+          insecure_skip_verify: true
+      postgresql/order_all:
+        endpoint: globeco-order-service-postgresql.globeco.svc.cluster.local:5432
+        transport: tcp
+        username: postgres
+        password: none
+        databases:
+          - postgres
+        collection_interval: 10s
+        tls:
+          insecure: true
+          insecure_skip_verify: true
+      postgresql/pricing:
+        endpoint: globeco-pricing-service-postgresql.globeco.svc.cluster.local:5432
+        username: postgres
+        password: none
+        databases:
+          - postgres
+        collection_interval: 10s
+        tls:
+          insecure: true
+          insecure_skip_verify: true
+      postgresql/pricing_all:
+        endpoint: globeco-pricing-service-postgresql.globeco.svc.cluster.local:5432
+        transport: tcp
+        username: postgres
+        password: none
+        databases:
+          - postgres
+        collection_interval: 10s
+        tls:
+          insecure: true
+          insecure_skip_verify: true
+      postgresql/execution:
+        endpoint: globeco-execution-service-postgresql.globeco.svc.cluster.local:5432
+        username: postgres
+        password: none
+        databases:
+          - postgres
+        collection_interval: 10s
+        tls:
+          insecure: true
+          insecure_skip_verify: true
+      postgresql/execution_all:
+        endpoint: globeco-execution-service-postgresql.globeco.svc.cluster.local:5432
+        transport: tcp
+        username: postgres
+        password: none
+        databases:
+          - postgres
+        collection_interval: 10s
+        tls:
+          insecure: true
+          insecure_skip_verify: true
+      postgresql/fix:
+        endpoint: globeco-fix-engine-postgresql.globeco.svc.cluster.local:5432
+        username: postgres
+        password: none
+        databases:
+          - postgres
+        collection_interval: 10s
+        tls:
+          insecure: true
+          insecure_skip_verify: true
+      postgresql/fix_all:
+        endpoint: globeco-fix-engine-postgresql.globeco.svc.cluster.local:5432
+        transport: tcp
+        username: postgres
+        password: none
+        databases:
+          - postgres
+        collection_interval: 10s
+        tls:
+          insecure: true
+          insecure_skip_verify: true
+      postgresql/portfolio_accounting:
+        endpoint: globeco-portfolio-accounting-service-postgresql.globeco.svc.cluster.local:5432
+        username: postgres
+        password: none
+        databases:
+          - postgres
+        collection_interval: 10s
+        tls:
+          insecure: true
+          insecure_skip_verify: true
+      postgresql/portfolio_accounting_all:
+        endpoint: globeco-portfolio-accounting-service-postgresql.globeco.svc.cluster.local:5432
+        transport: tcp
+        username: postgres
+        password: none
+        databases:
+          - postgres
+        collection_interval: 10s
+        tls:
+          insecure: true
+          insecure_skip_verify: true
+      mongodb/order_generation:
+       hosts:
+        - endpoint: globeco-order-generation-service-mongodb.globeco.svc.cluster.local:27017
+       collection_interval: 30s
+       initial_delay: 1s
+       tls:
+         insecure: true
+         insecure_skip_verify: true
+       metrics:
+         mongodb.uptime:
+           enabled: true
+         mongodb.commands.rate:
+           enabled: true
+         mongodb.health:
+           enabled: true
+         mongodb.operation.latency.time:
+           enabled: true
+         mongodb.queries.rate:
+           enabled: true
+      mongodb/portfolio:
+       hosts:
+        - endpoint: globeco-portfolio-service-mongodb.globeco.svc.cluster.local:27017
+       collection_interval: 30s
+       initial_delay: 1s
+       tls:
+         insecure: true
+         insecure_skip_verify: true
+       metrics:
+         mongodb.uptime:
+           enabled: true
+         mongodb.commands.rate:
+           enabled: true
+         mongodb.health:
+           enabled: true
+         mongodb.operation.latency.time:
+           enabled: true
+         mongodb.queries.rate:
+           enabled: true
+      mongodb/security:
+       hosts:
+        - endpoint: globeco-security-service-mongodb.globeco.svc.cluster.local:27017
+       collection_interval: 30s
+       initial_delay: 1s
+       tls:
+         insecure: true
+         insecure_skip_verify: true
+       metrics:
+         mongodb.uptime:
+           enabled: true
+         mongodb.commands.rate:
+           enabled: true
+         mongodb.health:
+           enabled: true
+         mongodb.operation.latency.time:
+           enabled: true
+         mongodb.queries.rate:
+           enabled: true
+      redis/order_generation:
+        endpoint: "globeco-order-generation-service-redis.globeco.svc.cluster.local:6379"
+        collection_interval: 10s
+        tls:
+          insecure: true
+      redis/portfolio_accounting:
+        endpoint: "globeco-portfolio-accounting-service-redis.globeco.svc.cluster.local:6379"
+        collection_interval: 10s
+        tls:
+          insecure: true
+      kafkametrics/execution_service:
+        cluster_alias: kafka-execution-service
+        brokers: ["globeco-execution-service-kafka.globeco.svc.cluster.local:9092"]
+        protocol_version: 3.0.0
+        scrapers:
+          - brokers
+          - topics
+          - consumers
+        collection_interval: 30s
+      # prometheus:
+      #   config:
+      #     scrape_configs:
+      #       - job_name: 'postgres'
+      #         static_configs:
+      #           - targets: ['globeco-postgres-exporter-trade-service.globeco.svc.cluster.local:9187']
+
+      # prometheus:
+      #   config:
+      #     scrape_configs:
+      #       - job_name: 'globeco-services'
+      #         kubernetes_sd_configs:
+      #           - role: pod
+      #             namespaces:
+      #               names:
+      #                 - globeco
+      #         relabel_configs:
+      #           - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+      #             action: keep
+      #             regex: true
+      #           - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+      #             action: replace
+      #             target_label: __metrics_path__
+      #             regex: (.+)
+      #           - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+      #             action: replace
+      #             regex: ([^:]+)(?::\d+)?;(\d+)
+      #             replacement: $1:$2
+      #             target_label: __address__
+    
+
+    processors:
+      batch:
+        timeout: 1s
+        send_batch_size: 1024
+        send_batch_max_size: 2048
+      
+      memory_limiter:
+        limit_mib: 512
+        spike_limit_mib: 128
+        check_interval: 5s
+
+      k8sattributes:
+        auth_type: "serviceAccount"
+        passthrough: false
+        filter:
+          node_from_env_var: KUBE_NODE_NAME
+        extract:
+          metadata:
+            - k8s.pod.name
+            - k8s.pod.uid
+            - k8s.pod.start_time
+            - k8s.deployment.name
+            - k8s.namespace.name
+            - k8s.node.name
+            - k8s.pod.ip
+          labels:
+            - tag_name: k8s_pod_label_app
+              key: app
+              from: pod
+            - tag_name: k8s_pod_label_version
+              key: version
+              from: pod
+          annotations:
+            - tag_name: k8s_pod_annotation_prometheus_scrape
+              key: prometheus.io/scrape
+              from: pod
+      
+      # Enhanced resource processor to preserve original service.name and add pod info
+      resource:
+        attributes:
+          # Only add collector info if service.name is not already present
+          - key: collector.name
+            value: otel-collector
+            action: upsert
+          - key: collector.version
+            value: "1.0.0"
+            action: upsert
+          - key: k8s_pod_name
+            from_attribute: k8s.pod.name
+            action: upsert
+          - key: k8s_pod_uid
+            from_attribute: k8s.pod.uid
+            action: upsert
+          - key: k8s_pod_start_time
+            from_attribute: k8s.pod.start_time
+            action: upsert
+          - key: k8s_deployment_name
+            from_attribute: k8s.deployment.name
+            action: upsert
+          - key: k8s_namespace_name
+            from_attribute: k8s.namespace.name
+            action: upsert
+          - key: k8s_node_name
+            from_attribute: k8s.node.name
+            action: upsert
+          - key: k8s_pod_ip
+            from_attribute: k8s.pod.ip
+            action: upsert
+          # Clean up the original attributes to avoid duplication
+          - key: k8s.pod.name
+            action: delete
+          - key: k8s.pod.uid
+            action: delete
+          - key: k8s.pod.start_time
+            action: delete
+          - key: k8s.deployment.name
+            action: delete
+          - key: k8s.namespace.name
+            action: delete
+          - key: k8s.node.name
+            action: delete
+          - key: k8s.pod.ip
+            action: delete
+      
+      # Separate resource processors for each PostgreSQL instance
+      resource/postgres_trade:
+        attributes:
+          - key: instance_name
+            value: globeco-trade-service-postgresql
+            action: upsert
+          - key: postgres_type
+            value: main
+            action: upsert
+          - key: service_name
+            value: globeco-trade-service
+            action: upsert
+      
+      resource/postgres_trade_all:
+        attributes:
+          - key: instance_name
+            value: globeco-trade-service-postgresql-all
+            action: upsert
+          - key: postgres_type
+            value: monitoring
+            action: upsert
+          - key: service_name
+            value: globeco-trade-service
+            action: upsert
+      
+      resource/postgres_allocation:
+        attributes:
+          - key: instance_name
+            value: globeco-allocation-service-postgresql
+            action: upsert
+          - key: postgres_type
+            value: main
+            action: upsert
+          - key: service_name
+            value: globeco-allocation-service
+            action: upsert
+      
+      resource/postgres_allocation_all:
+        attributes:
+          - key: instance_name
+            value: globeco-allocation-service-postgresql-all
+            action: upsert
+          - key: postgres_type
+            value: monitoring
+            action: upsert
+          - key: service_name
+            value: globeco-allocation-service
+            action: upsert
+      
+      resource/postgres_order:
+        attributes:
+          - key: instance_name
+            value: globeco-order-service-postgresql
+            action: upsert
+          - key: postgres_type
+            value: main
+            action: upsert
+          - key: service_name
+            value: globeco-order-service
+            action: upsert
+      
+      resource/postgres_order_all:
+        attributes:
+          - key: instance_name
+            value: globeco-order-service-postgresql-all
+            action: upsert
+          - key: postgres_type
+            value: monitoring
+            action: upsert
+          - key: service_name
+            value: globeco-order-service
+            action: upsert
+      
+      resource/postgres_pricing:
+        attributes:
+          - key: instance_name
+            value: globeco-pricing-service-postgresql
+            action: upsert
+          - key: postgres_type
+            value: main
+            action: upsert
+          - key: service_name
+            value: globeco-pricing-service
+            action: upsert
+      
+      resource/postgres_pricing_all:
+        attributes:
+          - key: instance_name
+            value: globeco-pricing-service-postgresql-all
+            action: upsert
+          - key: postgres_type
+            value: monitoring
+            action: upsert
+          - key: service_name
+            value: globeco-pricing-service
+            action: upsert
+      
+      resource/postgres_execution:
+        attributes:
+          - key: instance_name
+            value: globeco-execution-service-postgresql
+            action: upsert
+          - key: postgres_type
+            value: main
+            action: upsert
+          - key: service_name
+            value: globeco-execution-service
+            action: upsert
+      
+      resource/postgres_execution_all:
+        attributes:
+          - key: instance_name
+            value: globeco-execution-service-postgresql-all
+            action: upsert
+          - key: postgres_type
+            value: monitoring
+            action: upsert
+          - key: service_name
+            value: globeco-execution-service
+            action: upsert
+      
+      resource/postgres_fix:
+        attributes:
+          - key: instance_name
+            value: globeco-fix-engine-postgresql
+            action: upsert
+          - key: postgres_type
+            value: main
+            action: upsert
+          - key: service_name
+            value: globeco-fix-engine
+            action: upsert
+      
+      resource/postgres_fix_all:
+        attributes:
+          - key: instance_name
+            value: globeco-fix-engine-postgresql-all
+            action: upsert
+          - key: postgres_type
+            value: monitoring
+            action: upsert
+          - key: service_name
+            value: globeco-fix-engine
+            action: upsert
+      
+      resource/postgres_portfolio_accounting:
+        attributes:
+          - key: instance_name
+            value: globeco-portfolio-accounting-service-postgresql
+            action: upsert
+          - key: postgres_type
+            value: main
+            action: upsert
+          - key: service_name
+            value: globeco-portfolio-accounting-service
+            action: upsert
+      
+      resource/postgres_portfolio_accounting_all:
+        attributes:
+          - key: instance_name
+            value: globeco-portfolio-accounting-service-postgresql-all
+            action: upsert
+          - key: postgres_type
+            value: monitoring
+            action: upsert
+          - key: service_name
+            value: globeco-portfolio-accounting-service
+            action: upsert
+      
+      resource/mongodb_order_generation:
+        attributes:
+          - key: instance_name
+            value: globeco-order-generation-service-mongodb
+            action: upsert
+          - key: service_name
+            value: globeco-order-generation-service
+            action: upsert
+      
+      resource/mongodb_portfolio:
+        attributes:
+          - key: instance_name
+            value: globeco-portfolio-service-mongodb
+            action: upsert
+          - key: service_name
+            value: globeco-portfolio-service
+            action: upsert
+      
+      resource/mongodb_security:
+        attributes:
+          - key: instance_name
+            value: globeco-security-service-mongodb
+            action: upsert
+          - key: service_name
+            value: globeco-security-service
+            action: upsert
+      
+      resource/redis_order_generation:
+        attributes:
+          - key: instance_name
+            value: globeco-order-generation-service-redis
+            action: upsert
+          - key: service_name
+            value: globeco-order-generation-service
+            action: upsert
+      
+      resource/redis_portfolio_accounting:
+        attributes:
+          - key: instance_name
+            value: globeco-portfolio-accounting-service-redis
+            action: upsert
+          - key: service_name
+            value: globeco-portfolio-accounting-service
+            action: upsert
+      
+      resource/kafkametrics_execution:
+        attributes:
+          - key: instance_name
+            value: globeco-execution-service-kafka
+            action: upsert
+          - key: service_name
+            value: globeco-execution-service
+            action: upsert
+      
+      # Add k8sattributes processor to get pod information
+      k8sattributes:
+        auth_type: "serviceAccount"
+        passthrough: false
+        # filter:
+        #   node_from_env_var: MY_NODE_NAME
+        extract:
+          metadata:
+            - k8s.pod.name
+            - k8s.pod.uid
+            - k8s.deployment.name
+            - k8s.namespace.name
+            - k8s.node.name
+            - k8s.pod.start_time
+          labels:
+            - tag_name: k8s.pod.label.app
+              key: app
+              from: pod
+            - tag_name: k8s.pod.label.version
+              key: version
+              from: pod
+        pod_association:
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.ip
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.name
+              - from: resource_attribute
+                name: k8s.namespace.name
+          - sources:
+              - from: connection
+    
+    exporters:
+      # Enhanced Prometheus exporter configuration
+      prometheus:
+        endpoint: "0.0.0.0:8889"
+        # Remove the namespace prefix to avoid otel_ prefix
+        namespace: ""
+        const_labels:
+          environment: "production"
+          collector: "otel-collector"
+        metric_expiration: 5m
+        resource_to_telemetry_conversion:
+          enabled: true
+        # Enable target_info metric to preserve resource attributes
+        enable_open_metrics: true
+        # Add resource attributes as labels
+        add_metric_suffixes: true
+  
+      otlp:
+        endpoint: "jaeger.observability.svc.cluster.local:4317"
+        tls:
+          insecure: true
+      # Optional: Logging exporter for debugging
+      # logging:
+        # loglevel: debug
+        # sampling_initial: 2
+        # sampling_thereafter: 500
+      debug: {}
+    
+    extensions:
+      # health_check:
+      #   endpoint: 0.0.0.0:13133
+      
+      pprof:
+        endpoint: 0.0.0.0:1777
+      
+      zpages:
+        endpoint: 0.0.0.0:55679
+    
+    service:
+      extensions: [health_check, pprof, zpages]
+      pipelines:
+        metrics/prometheus:
+          receivers: [otlp]
+          processors: [k8sattributes, resource, batch]
+          exporters: [prometheus]
+        # Main metrics pipeline for OTLP and hostmetrics
+        metrics/main:
+          receivers: [otlp, hostmetrics]
+          processors: [memory_limiter, k8sattributes, resource, batch]
+          exporters: [prometheus]
+        
+        # Separate pipelines for Trade Service PostgreSQL instances
+        metrics/postgres_trade:
+          receivers: [postgresql/trade]
+          processors: [memory_limiter, resource/postgres_trade, batch]
+          exporters: [prometheus, debug]
+        
+        metrics/postgres_trade_all:
+          receivers: [postgresql/trade_all]
+          processors: [memory_limiter, resource/postgres_trade_all, batch]
+          exporters: [prometheus, debug]
+        
+        # Separate pipelines for Allocation Service PostgreSQL instances
+        metrics/postgres_allocation:
+          receivers: [postgresql/allocation]
+          processors: [memory_limiter, resource/postgres_allocation, batch]
+          exporters: [prometheus, debug]
+        
+        metrics/postgres_allocation_all:
+          receivers: [postgresql/allocation_all]
+          processors: [memory_limiter, resource/postgres_allocation_all, batch]
+          exporters: [prometheus, debug]
+        
+        # Separate pipelines for Order Service PostgreSQL instances
+        metrics/postgres_order:
+          receivers: [postgresql/order]
+          processors: [memory_limiter, resource/postgres_order, batch]
+          exporters: [prometheus, debug]
+        
+        metrics/postgres_order_all:
+          receivers: [postgresql/order_all]
+          processors: [memory_limiter, resource/postgres_order_all, batch]
+          exporters: [prometheus, debug]
+        
+        # Separate pipelines for Pricing Service PostgreSQL instances
+        metrics/postgres_pricing:
+          receivers: [postgresql/pricing]
+          processors: [memory_limiter, resource/postgres_pricing, batch]
+          exporters: [prometheus, debug]
+        
+        metrics/postgres_pricing_all:
+          receivers: [postgresql/pricing_all]
+          processors: [memory_limiter, resource/postgres_pricing_all, batch]
+          exporters: [prometheus, debug]
+        
+        # Separate pipelines for Execution Service PostgreSQL instances
+        metrics/postgres_execution:
+          receivers: [postgresql/execution]
+          processors: [memory_limiter, resource/postgres_execution, batch]
+          exporters: [prometheus, debug]
+        
+        metrics/postgres_execution_all:
+          receivers: [postgresql/execution_all]
+          processors: [memory_limiter, resource/postgres_execution_all, batch]
+          exporters: [prometheus, debug]
+        
+        # Separate pipelines for Fix Engine PostgreSQL instances
+        metrics/postgres_fix:
+          receivers: [postgresql/fix]
+          processors: [memory_limiter, resource/postgres_fix, batch]
+          exporters: [prometheus, debug]
+        
+        metrics/postgres_fix_all:
+          receivers: [postgresql/fix_all]
+          processors: [memory_limiter, resource/postgres_fix_all, batch]
+          exporters: [prometheus, debug]
+        
+        # Separate pipelines for Portfolio Accounting Service PostgreSQL instances
+        metrics/postgres_portfolio_accounting:
+          receivers: [postgresql/portfolio_accounting]
+          processors: [memory_limiter, resource/postgres_portfolio_accounting, batch]
+          exporters: [prometheus, debug]
+        
+        metrics/postgres_portfolio_accounting_all:
+          receivers: [postgresql/portfolio_accounting_all]
+          processors: [memory_limiter, resource/postgres_portfolio_accounting_all, batch]
+          exporters: [prometheus, debug]
+        
+        metrics/mongodb_order_generation:
+          receivers: [mongodb/order_generation]
+          processors: [memory_limiter, resource/mongodb_order_generation, batch]
+          exporters: [prometheus, debug]
+        
+        metrics/mongodb_portfolio:
+          receivers: [mongodb/portfolio]
+          processors: [memory_limiter, resource/mongodb_portfolio, batch]
+          exporters: [prometheus, debug]
+        
+        metrics/mongodb_security:
+          receivers: [mongodb/security]
+          processors: [memory_limiter, resource/mongodb_security, batch]
+          exporters: [prometheus, debug]
+        
+        metrics/redis_order_generation:
+          receivers: [redis/order_generation]
+          processors: [memory_limiter, resource/redis_order_generation, batch]
+          exporters: [prometheus, debug]
+        
+        metrics/redis_portfolio_accounting:
+          receivers: [redis/portfolio_accounting]
+          processors: [memory_limiter, resource/redis_portfolio_accounting, batch]
+          exporters: [prometheus, debug]
+        
+        metrics/kafkametrics_execution_service:
+          receivers: [kafkametrics/execution_service]
+          processors: [memory_limiter, resource/kafkametrics_execution, batch]
+          exporters: [prometheus, debug]
+        
+        # metrics/prometheus_postgres_exporter:
+        #   receivers: [prometheus]
+        #   exporters: [prometheus]
+        
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, k8sattributes, resource, batch]
+          exporters: [otlp]
+
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, k8sattributes, resource, batch]
+          exporters: [debug]
+  
+  # Resource configuration
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1024Mi
+    requests:
+      cpu: 500m
+      memory: 1024Mi
+  
+  # Replica configuration
+  replicas: 1
+  
+  # Pod template customization
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8889"
+    prometheus.io/path: "/metrics"
+  
+  # Enhanced environment variables
+  env:
+    - name: MY_POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+    - name: MY_POD_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.name
+    - name: MY_NODE_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: spec.nodeName
+    - name: MY_NAMESPACE
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.namespace
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: otel-collector
+  namespace: monitoring
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: otel-collector
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "nodes", "services", "endpoints", "namespaces"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["replicasets", "deployments", "daemonsets", "statefulsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["extensions"]
+    resources: ["replicasets", "deployments", "daemonsets"]
+    verbs: ["get", "list", "watch"]
+  # Additional permissions for k8sattributes processor
+  - apiGroups: [""]
+    resources: ["pods/status"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: otel-collector
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: otel-collector
+subjects:
+  - kind: ServiceAccount
+    name: otel-collector
+    namespace: monitoring

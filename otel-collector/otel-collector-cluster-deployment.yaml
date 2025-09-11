@@ -1,0 +1,120 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-collector
+  namespace: monitoring
+  labels:
+    app: otel-collector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otel-collector
+  template:
+    metadata:
+      labels:
+        app: otel-collector
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9464"
+        prometheus.io/path: "/metrics"
+        prometheus.io/scheme: "http"
+    spec:
+      serviceAccountName: otel-collector
+      containers:
+        - name: otel-collector
+          image: otel/opentelemetry-collector-contrib:0.107.0
+          args: ["--config=/etc/otel-collector/config.yaml"]
+          ports:
+            - containerPort: 9464 # Prometheus exporter
+              name: prom-metrics
+            - containerPort: 13133 # health check
+              name: health
+          volumeMounts:
+            - name: otel-collector-config
+              mountPath: /etc/otel-collector
+      volumes:
+        - name: otel-collector-config
+          configMap:
+            name: otel-collector-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+  namespace: monitoring
+  labels:
+    app: otel-collector
+spec:
+  ports:
+    - name: prom-metrics
+      port: 9464
+      targetPort: prom-metrics
+  selector:
+    app: otel-collector
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: otel-collector
+  namespace: monitoring
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: otel-collector
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "nodes", "namespaces", "events"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: otel-collector
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: otel-collector
+subjects:
+  - kind: ServiceAccount
+    name: otel-collector
+    namespace: monitoring
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-config
+  namespace: monitoring
+data:
+  config.yaml: |
+    receivers:
+      k8s_cluster:
+        auth_type: serviceAccount
+        collection_interval: 30s
+        node_conditions_to_report: [Ready, MemoryPressure, DiskPressure, NetworkUnavailable]
+      k8s_events:
+        auth_type: serviceAccount
+
+    processors:
+      batch:
+
+    exporters:
+      prometheus:
+        endpoint: "0.0.0.0:9464"
+
+    service:
+      pipelines:
+        metrics:
+          receivers: [k8s_cluster]
+          processors: [batch]
+          exporters: [prometheus]
+        # logs:
+        #   receivers: [k8s_events]
+        #   processors: [batch]
+        #   exporters: [prometheus]
