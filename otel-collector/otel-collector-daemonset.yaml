@@ -6,7 +6,33 @@ metadata:
 spec:
   mode: daemonset
   image: otel/opentelemetry-collector-contrib:latest
-  serviceAccount: otel-collector
+  serviceAccount: otel-collector-daemonset
+
+  # Pod Annotations for Prometheus autodiscovery
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8889"
+    prometheus.io/path: "/metrics"
+
+  env:
+    - name: MY_POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+    - name: MY_POD_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.name
+    - name: MY_NODE_NAME
+      valueFrom:
+        fieldRef:
+          apiVersion: v1
+          fieldPath: spec.nodeName
+    - name: MY_NAMESPACE
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.namespace
+
 
   # Ports configuration
   ports:
@@ -207,25 +233,25 @@ spec:
         tls:
           insecure: true
           insecure_skip_verify: true
-      mongodb/order_generation:
-       hosts:
-        - endpoint: globeco-order-generation-service-mongodb.globeco.svc.cluster.local:27017
-       collection_interval: 30s
-       initial_delay: 1s
-       tls:
-         insecure: true
-         insecure_skip_verify: true
-       metrics:
-         mongodb.uptime:
-           enabled: true
-         mongodb.commands.rate:
-           enabled: true
-         mongodb.health:
-           enabled: true
-         mongodb.operation.latency.time:
-           enabled: true
-         mongodb.queries.rate:
-           enabled: true
+      # mongodb/order_generation:
+      #  hosts:
+      #   - endpoint: globeco-order-generation-service-mongodb.globeco.svc.cluster.local:27017
+      #  collection_interval: 30s
+      #  initial_delay: 1s
+      #  tls:
+      #    insecure: true
+      #    insecure_skip_verify: true
+      #  metrics:
+      #    mongodb.uptime:
+      #      enabled: true
+      #    mongodb.commands.rate:
+      #      enabled: true
+      #    mongodb.health:
+      #      enabled: true
+      #    mongodb.operation.latency.time:
+      #      enabled: true
+      #    mongodb.queries.rate:
+      #      enabled: true
       mongodb/portfolio:
        hosts:
         - endpoint: globeco-portfolio-service-mongodb.globeco.svc.cluster.local:27017
@@ -295,6 +321,7 @@ spec:
       k8sattributes:
         auth_type: "serviceAccount"
         passthrough: false
+        wait_for_metadata: true
         filter:
           node_from_env_var: MY_NODE_NAME
         extract:
@@ -305,6 +332,15 @@ spec:
             - k8s.namespace.name
             - k8s.node.name
             - k8s.pod.start_time
+            - k8s.deployment.name
+            - k8s.daemonset.name
+            - k8s.statefulset.name
+            - k8s.job.name
+            - k8s.container.name
+            - container.image.name
+            - container.id
+            - container.image.tag
+            # - k8s.pod.ip
           labels:
             - tag_name: k8s.pod.label.app
               key: app
@@ -312,17 +348,49 @@ spec:
             - tag_name: k8s.pod.label.version
               key: version
               from: pod
-        pod_association:
-          - sources:
+        
+        pod_association: # How to associate the data to a pod (order matters)
+          - sources: # First try to use the value of the resource attribute k8s.pod.ip
               - from: resource_attribute
                 name: k8s.pod.ip
-          - sources:
+          - sources: # Then try to use the value of the resource attribute k8s.pod.uid
               - from: resource_attribute
-                name: k8s.pod.name
-              - from: resource_attribute
-                name: k8s.namespace.name
-          - sources:
+                name: k8s.pod.uid
+          - sources: # If neither of those work, use the request's connection to get the pod IP.
               - from: connection
+        
+        # pod_association:
+          
+        #   - sources:
+        #     - from: connection
+
+        #   # 1. Try explicit resource attributes (if set by apps) - THIS SHOULD BE FIRST
+        #   - sources:
+        #     - from: resource_attribute
+        #       name: k8s.pod.ip
+        #     - from: resource_attribute
+        #       name: k8s.pod.name
+          
+          
+
+        #   # 2. Try connection-based (fallback for when resource_attribute is not set)
+        #   - sources:
+        #       - from: connection
+          
+        #   # 3. Try service.name based association (fallback)
+        #   - sources:
+        #       - from: resource_attribute
+        #         name: service.name
+        #       - from: resource_attribute  
+        #         name: k8s.namespace.name
+          
+        #   # 4. Try pod name + namespace (if available)
+        #   - sources:
+        #       - from: resource_attribute
+        #         name: k8s.pod.name
+        #       - from: resource_attribute
+        #         name: k8s.namespace.name
+         
       resource:
         attributes:
           - key: collector.type
@@ -339,7 +407,7 @@ spec:
             value: main
             action: upsert
           - key: service_name
-            value: globeco-trade-service
+            value: globeco-trade-service-postgresql
             action: upsert
       
       resource/postgres_trade_all:
@@ -351,7 +419,7 @@ spec:
             value: monitoring
             action: upsert
           - key: service_name
-            value: globeco-trade-service
+            value: globeco-trade-service-postgresql
             action: upsert
       
       resource/postgres_allocation:
@@ -363,7 +431,7 @@ spec:
             value: main
             action: upsert
           - key: service_name
-            value: globeco-allocation-service
+            value: globeco-allocation-service-postgresql
             action: upsert
       
       resource/postgres_allocation_all:
@@ -375,7 +443,7 @@ spec:
             value: monitoring
             action: upsert
           - key: service_name
-            value: globeco-allocation-service
+            value: globeco-allocation-service-postgresql
             action: upsert
       
       resource/postgres_order:
@@ -387,7 +455,7 @@ spec:
             value: main
             action: upsert
           - key: service_name
-            value: globeco-order-service
+            value: globeco-order-service-postgresql
             action: upsert
       
       resource/postgres_order_all:
@@ -399,7 +467,7 @@ spec:
             value: monitoring
             action: upsert
           - key: service_name
-            value: globeco-order-service
+            value: globeco-order-service-postgresql
             action: upsert
       
       resource/postgres_pricing:
@@ -411,7 +479,7 @@ spec:
             value: main
             action: upsert
           - key: service_name
-            value: globeco-pricing-service
+            value: globeco-pricing-service-postgresql
             action: upsert
       
       resource/postgres_pricing_all:
@@ -423,7 +491,7 @@ spec:
             value: monitoring
             action: upsert
           - key: service_name
-            value: globeco-pricing-service
+            value: globeco-pricing-service-postgresql
             action: upsert
       
       resource/postgres_execution:
@@ -435,7 +503,7 @@ spec:
             value: main
             action: upsert
           - key: service_name
-            value: globeco-execution-service
+            value: globeco-execution-service-postgresql
             action: upsert
       
       resource/postgres_execution_all:
@@ -447,7 +515,7 @@ spec:
             value: monitoring
             action: upsert
           - key: service_name
-            value: globeco-execution-service
+            value: globeco-execution-service-postgresql
             action: upsert
       
       resource/postgres_fix:
@@ -459,7 +527,7 @@ spec:
             value: main
             action: upsert
           - key: service_name
-            value: globeco-fix-engine
+            value: globeco-fix-engine-postgresql
             action: upsert
       
       resource/postgres_fix_all:
@@ -471,7 +539,7 @@ spec:
             value: monitoring
             action: upsert
           - key: service_name
-            value: globeco-fix-engine
+            value: globeco-fix-engine-postgresql
             action: upsert
       
       resource/postgres_portfolio_accounting:
@@ -483,7 +551,7 @@ spec:
             value: main
             action: upsert
           - key: service_name
-            value: globeco-portfolio-accounting-service
+            value: globeco-portfolio-accounting-service-postgresql
             action: upsert
       
       resource/postgres_portfolio_accounting_all:
@@ -495,17 +563,17 @@ spec:
             value: monitoring
             action: upsert
           - key: service_name
-            value: globeco-portfolio-accounting-service
+            value: globeco-portfolio-accounting-service-postgresql
             action: upsert
       
-      resource/mongodb_order_generation:
-        attributes:
-          - key: instance_name
-            value: globeco-order-generation-service-mongodb
-            action: upsert
-          - key: service_name
-            value: globeco-order-generation-service
-            action: upsert
+      # resource/mongodb_order_generation:
+      #   attributes:
+      #     - key: instance_name
+      #       value: globeco-order-generation-service-mongodb
+      #       action: upsert
+      #     - key: service_name
+      #       value: globeco-order-generation-service-mongodb
+      #       action: upsert
       
       resource/mongodb_portfolio:
         attributes:
@@ -513,7 +581,7 @@ spec:
             value: globeco-portfolio-service-mongodb
             action: upsert
           - key: service_name
-            value: globeco-portfolio-service
+            value: globeco-portfolio-service-mongodb
             action: upsert
       
       resource/mongodb_security:
@@ -522,7 +590,7 @@ spec:
             value: globeco-security-service-mongodb
             action: upsert
           - key: service_name
-            value: globeco-security-service
+            value: globeco-security-service-mongodb
             action: upsert
       
       resource/redis_order_generation:
@@ -531,7 +599,7 @@ spec:
             value: globeco-order-generation-service-redis
             action: upsert
           - key: service_name
-            value: globeco-order-generation-service
+            value: globeco-order-generation-service-redis
             action: upsert
       
       resource/redis_portfolio_accounting:
@@ -540,7 +608,7 @@ spec:
             value: globeco-portfolio-accounting-service-redis
             action: upsert
           - key: service_name
-            value: globeco-portfolio-accounting-service
+            value: globeco-portfolio-accounting-service-redis
             action: upsert
       
       resource/kafkametrics_execution:
@@ -549,7 +617,7 @@ spec:
             value: globeco-execution-service-kafka
             action: upsert
           - key: service_name
-            value: globeco-execution-service
+            value: globeco-execution-service-kafka
             action: upsert
 
     exporters:
@@ -569,7 +637,8 @@ spec:
         endpoint: "jaeger.observability.svc.cluster.local:4317"
         tls:
           insecure: true
-      debug: {}
+      debug: 
+        verbosity: detailed
 
     extensions:
       pprof:
@@ -580,20 +649,20 @@ spec:
     service:
       extensions: [pprof, zpages]
       pipelines:
-        # metrics/host:
-        #   receivers: [hostmetrics]
-        #   processors: [memory_limiter, k8sattributes, resource, batch]
-        #   exporters: [prometheus]
-        
-        metrics/prometheus:
-          receivers: [otlp]
-          processors: [k8sattributes, resource, batch]
+        metrics/host:
+          receivers: [hostmetrics]
+          processors: [memory_limiter, resource, batch]
           exporters: [prometheus]
-
-        metrics/services:
-          receivers: [otlp, hostmetrics]
+        
+        metrics/applications:
+          receivers: [otlp]
           processors: [memory_limiter, k8sattributes, resource, batch]
           exporters: [prometheus]
+
+        # metrics/services:
+        #   receivers: [otlp, hostmetrics]
+        #   processors: [memory_limiter, k8sattributes, resource, batch]
+        #   exporters: [prometheus, debug]
         
         
         
@@ -676,10 +745,10 @@ spec:
           processors: [memory_limiter, resource/postgres_portfolio_accounting_all, batch]
           exporters: [prometheus, debug]
         
-        metrics/mongodb_order_generation:
-          receivers: [mongodb/order_generation]
-          processors: [memory_limiter, resource/mongodb_order_generation, batch]
-          exporters: [prometheus, debug]
+        # metrics/mongodb_order_generation:
+        #   receivers: [mongodb/order_generation]
+        #   processors: [memory_limiter, resource/mongodb_order_generation, batch]
+        #   exporters: [prometheus, debug]
         
         metrics/mongodb_portfolio:
           receivers: [mongodb/portfolio]
@@ -716,30 +785,7 @@ spec:
           processors: [memory_limiter, k8sattributes, resource, batch]
           exporters: [debug]
 
-  # Pod Annotations for Prometheus autodiscovery
-  podAnnotations:
-    prometheus.io/scrape: "true"
-    prometheus.io/port: "8889"
-    prometheus.io/path: "/metrics"
-
-  env:
-    - name: MY_POD_IP
-      valueFrom:
-        fieldRef:
-          fieldPath: status.podIP
-    - name: MY_POD_NAME
-      valueFrom:
-        fieldRef:
-          fieldPath: metadata.name
-    - name: MY_NODE_NAME
-      valueFrom:
-        fieldRef:
-          fieldPath: spec.nodeName
-    - name: MY_NAMESPACE
-      valueFrom:
-        fieldRef:
-          fieldPath: metadata.namespace
-
+  
   resources:
     limits:
       cpu: 500m
@@ -752,14 +798,14 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: otel-collector
+  name: otel-collector-daemonset
   namespace: monitoring
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: otel-collector
+  name: otel-collector-daemonset
 rules:
   - apiGroups: [""]
     resources: ["pods", "services", "endpoints", "namespaces"]
@@ -773,17 +819,20 @@ rules:
   - apiGroups: [""]
     resources: ["pods/status"]
     verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: otel-collector
+  name: otel-collector-daemonset
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: otel-collector
+  name: otel-collector-daemonset
 subjects:
   - kind: ServiceAccount
-    name: otel-collector
+    name: otel-collector-daemonset
     namespace: monitoring

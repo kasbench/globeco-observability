@@ -20,10 +20,10 @@ spec:
         prometheus.io/path: "/metrics"
         prometheus.io/scheme: "http"
     spec:
-      serviceAccountName: otel-collector
+      serviceAccountName: otel-collector-cluster
       containers:
         - name: otel-collector
-          image: otel/opentelemetry-collector-contrib:0.107.0
+          image: otel/opentelemetry-collector-contrib:latest
           args: ["--config=/etc/otel-collector/config.yaml"]
           ports:
             - containerPort: 9464 # Prometheus exporter
@@ -36,16 +36,20 @@ spec:
       volumes:
         - name: otel-collector-config
           configMap:
-            name: otel-collector-config
+            name: otel-collector-cluster-config
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: otel-collector
+  name: otel-collector-cluster
   namespace: monitoring
   labels:
     app: otel-collector
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9464"
+    prometheus.io/path: "/metrics"
 spec:
   ports:
     - name: prom-metrics
@@ -58,38 +62,79 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: otel-collector
+  name: otel-collector-cluster
   namespace: monitoring
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: otel-collector
+  name: otel-collector-cluster
 rules:
+  # Core resources
   - apiGroups: [""]
-    resources: ["pods", "nodes", "namespaces", "events"]
+    resources: 
+      - "pods"
+      - "nodes" 
+      - "namespaces"
+      - "events"
+      - "replicationcontrollers"
+      - "resourcequotas"
+      - "persistentvolumes"
+      - "persistentvolumeclaims"
+      - "services"
+      - "secrets"
+      - "configmaps"
+    verbs: ["get", "list", "watch"]
+  
+  # Apps resources
+  - apiGroups: ["apps"]
+    resources:
+      - "deployments"
+      - "daemonsets" 
+      - "replicasets"
+      - "statefulsets"
+    verbs: ["get", "list", "watch"]
+  
+  # Batch resources  
+  - apiGroups: ["batch"]
+    resources:
+      - "jobs"
+      - "cronjobs"
+    verbs: ["get", "list", "watch"]
+  
+  # Autoscaling resources
+  - apiGroups: ["autoscaling"]
+    resources:
+      - "horizontalpodautoscalers"
+    verbs: ["get", "list", "watch"]
+  
+  # Extensions (for some clusters)
+  - apiGroups: ["extensions"]
+    resources:
+      - "deployments"
+      - "replicasets"
     verbs: ["get", "list", "watch"]
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: otel-collector
+  name: otel-collector-cluster
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: otel-collector
+  name: otel-collector-cluster
 subjects:
   - kind: ServiceAccount
-    name: otel-collector
+    name: otel-collector-cluster
     namespace: monitoring
 
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: otel-collector-config
+  name: otel-collector-cluster-config
   namespace: monitoring
 data:
   config.yaml: |
@@ -101,19 +146,72 @@ data:
       k8s_events:
         auth_type: serviceAccount
 
+      mongodb/order_generation:
+        hosts:
+          - endpoint: globeco-order-generation-service-mongodb.globeco.svc.cluster.local:27017
+        collection_interval: 30s
+        initial_delay: 1s
+        tls:
+          insecure: true
+          insecure_skip_verify: true
+        metrics:
+              mongodb.uptime:
+                enabled: true
+              mongodb.commands.rate:
+                enabled: true
+              mongodb.health:
+                enabled: true
+              mongodb.operation.latency.time:
+                enabled: true
+              mongodb.queries.rate:
+                enabled: true
+              mongodb.flushes.rate:
+                enabled: false
     processors:
       batch:
+        timeout: 1s
+        send_batch_size: 1024
+        send_batch_max_size: 2048
+
+      memory_limiter:
+        limit_mib: 512
+        spike_limit_mib: 128
+        check_interval: 5s
+
+      resource/mongodb_order_generation:
+        attributes:
+          - key: instance_name
+            value: globeco-order-generation-service-mongodb
+            action: upsert
+          - key: service_name
+            value: globeco-order-generation-service-mongodb
+            action: upsert
 
     exporters:
       prometheus:
         endpoint: "0.0.0.0:9464"
+        namespace: ""
+        const_labels:
+          environment: "production"
+          collector: "otel-collector-cluster"
+        metric_expiration: 1440m
+        resource_to_telemetry_conversion:
+          enabled: true
 
+      debug: {}
+    
     service:
       pipelines:
         metrics:
           receivers: [k8s_cluster]
           processors: [batch]
+          exporters: [prometheus, debug]
+        
+        metrics/mongodb_order_generation:
+          receivers: [mongodb/order_generation]
+          processors: [memory_limiter, resource/mongodb_order_generation, batch]
           exporters: [prometheus]
+
         # logs:
         #   receivers: [k8s_events]
         #   processors: [batch]
