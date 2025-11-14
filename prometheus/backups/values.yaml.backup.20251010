@@ -850,46 +850,19 @@ serverFiles:
         static_configs:
           - targets:
               - localhost:9090
+      #- job_name: otel-collector-cluster
+      #  static_configs:
+      #    - targets:
+      #        - otel-collector-collector.monitoring.svc.cluster.local:8889
+      #        # - otel-collector-cluster-opentelemetry-collector.monitor.svc.cluster.local:8889
+      #  scrape_interval: 30s
+      #  scrape_timeout: 25s
+      #  metrics_path: /metrics
+      #  scheme: http
       - job_name: locust-collector
         static_configs:
           - targets:
               - globeco-benchmark-coordinator-internal.globeco.svc.cluster.local:9646
-
-      # New job to scrape cAdvisor every 10 seconds
-      - job_name: cadvisor
-        # Set the scrape interval for this specific job to 10 seconds
-        scrape_interval: 10s
-        # Set a scrape timeout slightly less than the scrape interval
-        scrape_timeout: 9s 
-        
-        # Use Kubernetes Service Discovery (SD) to target the cAdvisor Service
-        kubernetes_sd_configs:
-          - role: endpoints
-        
-        # Relabeling ensures we only scrape the correct service/port
-        relabel_configs:
-          # 1. Keep only endpoints belonging to the 'cadvisor' service in the 'cadvisor' namespace
-          - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name]
-            regex: cadvisor;cadvisor
-            action: keep
-            
-          # 2. Rewrite the scrape target address to use the cAdvisor service's port (8080)
-          - source_labels: [__meta_kubernetes_service_port_name]
-            regex: http # Assuming your service has a port named 'http' or you can match the target port directly
-            replacement: 8080 # The port cAdvisor is exposed on (from your 'service/cadvisor' output)
-            target_label: __port__ # This is often unnecessary if the address is already correct, but good practice
-            
-          # 3. This relabeling is key: it rewrites the target label to the format <pod_ip>:<port>
-          - source_labels: [__address__]
-            target_label: __address__
-            regex: (.+:\d+)
-            replacement: $1
-            action: replace
-
-          # 4. Add the service name as a label for easier querying
-          - source_labels: [__meta_kubernetes_service_name]
-            target_label: kubernetes_service
-            action: replace
 
 
       # A scrape configuration for running Prometheus on a Kubernetes cluster.
