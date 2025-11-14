@@ -1,0 +1,22 @@
+# Pushgateway Service with NodePort
+apiVersion: v1
+kind: Service
+metadata:
+  name: pushgateway
+  namespace: monitor
+  labels:
+    app: pushgateway
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9091"
+    prometheus.io/path: "/metrics"
+spec:
+  type: NodePort
+  ports:
+  - port: 9091
+    targetPort: 9091
+    nodePort: 30091  # You can change this to any available port in range 30000-32767
+    protocol: TCP
+    name: http
+  selector:
+    app: pushgateway
