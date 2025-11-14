@@ -633,10 +633,8 @@ spec:
         enable_open_metrics: true
         add_metric_suffixes: true
 
-      otlp:
-        endpoint: "jaeger.observability.svc.cluster.local:4317"
-        tls:
-          insecure: true
+      otlphttp/jaeger:
+        endpoint: "http://jaeger.observability.svc.cluster.local:4318"
       debug: 
         verbosity: detailed
 
@@ -778,7 +776,7 @@ spec:
         traces:
           receivers: [otlp]
           processors: [memory_limiter, k8sattributes, resource, batch]
-          exporters: [otlp]
+          exporters: [otlphttp/jaeger]
 
         logs:
           receivers: [otlp]
