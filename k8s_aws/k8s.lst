@@ -1,5 +1,5 @@
 # Prometheus
-> helm install prometheus prometheus-community/prometheus -f values_prometheus.yaml -n monitoring
+> helm install prometheus prometheus-community/prometheus -f https://raw.githubusercontent.com/kasbench/globeco-observability/v1.1.1/k8s_aws/values_prometheus.yaml -n monitoring
 
 # Elasticsearch
 elasticsearch-pvc.yaml
