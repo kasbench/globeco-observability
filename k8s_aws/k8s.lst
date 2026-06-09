@@ -1,0 +1,20 @@
+# Prometheus
+> helm install prometheus prometheus-community/prometheus -f values_prometheus.yaml -n monitoring
+
+# Elasticsearch
+elasticsearch-pvc.yaml
+elasticsearch-deployment.yaml
+elasticsearch-service.yaml
+
+# Jaeger
+jaeger-config.yaml
+jaeger-v2-elasticsearch.yaml
+jaeger-service.yaml
+
+# OpenTelemetry Collector
+otel-collector-cluster-deployment.yaml
+otel-collector-daemonset.yaml
+
+# Metrics Server
+metrics_server_deployment.yaml
+
