@@ -20,9 +20,14 @@ jaeger-v2-elasticsearch.yaml
 jaeger-service.yaml
 
 # OpenTelemetry Collector
+>kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+# Wait for it to be ready before installing the operator
+>kubectl wait --for=condition=Available deployment --all -n cert-manager --timeout=120s
+>kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/latest/download/opentelemetry-operator.yaml
 otel-collector-cluster-deployment.yaml
 otel-collector-daemonset.yaml
 
 # Metrics Server
 metrics_server_deployment.yaml
+
 
