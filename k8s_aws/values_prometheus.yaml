@@ -1356,6 +1356,10 @@ alertmanager:
 
   persistence:
     size: 2Gi
+    enabled: true
+    storageClass: "ebs-gp3"
+    accessModes:
+      - ReadWriteOnce
 
   podSecurityContext:
     runAsUser: 65534
