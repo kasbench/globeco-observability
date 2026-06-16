@@ -1,3 +1,6 @@
+# Pause before starting manifests to allow K8S time to fully initialize
++60
+
 # Prometheus
 
 # Add the official community repo
@@ -32,4 +35,6 @@ otel-collector-daemonset.yaml
 # Metrics Server
 metrics_server_deployment.yaml
 
+# Pause to let Prometheus and the OpenTelemetry collectors to start fully
++60
 
