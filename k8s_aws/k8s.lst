@@ -11,6 +11,7 @@
 
 # Install prometheus
 > helm install prometheus prometheus-community/prometheus -f https://raw.githubusercontent.com/kasbench/globeco-observability/v1.1.5/k8s_aws/values_prometheus.yaml -n monitoring
+prometheus-server-ext.yaml
 
 # Elasticsearch
 elasticsearch-pvc.yaml
@@ -38,4 +39,3 @@ metrics_server_deployment.yaml
 # Pause to let Prometheus and the OpenTelemetry collectors to start fully
 +60
 
->kubectl expose deployment prometheus-server --type=NodePort --port=32080 --target-port=3000 --name=prometheus-server-ext --namespace=monitoring
