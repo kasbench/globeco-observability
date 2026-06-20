@@ -38,3 +38,4 @@ metrics_server_deployment.yaml
 # Pause to let Prometheus and the OpenTelemetry collectors to start fully
 +60
 
+>kubectl expose deployment prometheus-server --type=NodePort --port=32080 --target-port=3000 --name=prometheus-server-ext --namespace=monitoring
